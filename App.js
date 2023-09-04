@@ -41,9 +41,8 @@ const Page1 = ({navigation, route}) => {
     const updatedNote = updatedNotes.find(n=>n.id === id)
     updatedNote.noteHeader = header
     updatedNote.noteText = text
-    setNotes[updatedNotes]
+    setNotes(updatedNotes)
   }
-
   return (
   <View style={styles.container}>
     <FlatList data={notes} renderItem={(note) => <Text style={styles.noteItem} onPress={()=>{
@@ -114,5 +113,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
+
 
 export default App;
