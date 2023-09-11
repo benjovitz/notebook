@@ -62,10 +62,6 @@ function updateNoteInDatabase(noteHeader, noteText, id){
     {key:2,noteHeader:"header 2", noteText:"text 2"}
   ])
 
-  const addNote = (header, text) => { 
-    setNotes([...notes,{key:notes.length, noteHeader: header, noteText: text}])
-  }
-
   const updateNote = (header, text, key) => { 
     const updatedNotes = [...notes] 
     const updatedNote = updatedNotes.find(n=>n.key === key)
