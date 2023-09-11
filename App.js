@@ -1,11 +1,17 @@
 import {NavigationContainer} from '@react-navigation/native'; // npm install @react-navigation/native
 import {createNativeStackNavigator} from '@react-navigation/native-stack'; // npm install @react-navigation/native-stack
-import { StyleSheet, Text, View, Button, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, Button, TextInput, FlatList, } from 'react-native';
 import React, { useState } from 'react';
+import { app, database } from './firebase.js';
+import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import {useCollection} from "react-firebase-hooks/firestore"
 
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+
+  //alert(JSON.stringify(database, null, 4))
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName='Page1'>
@@ -25,32 +31,65 @@ const App = () => {
 }
 
 const Page1 = ({navigation, route}) => {
+
+  const [values, loading, error] = useCollection(collection(database, "notes"))
+  const data = values?.docs.map((doc => ({...doc.data(), id: doc.id})))
+
+  async function addToDatabase(noteHeader, noteText){
+    try{
+    await addDoc(collection(database, "notes"),{
+      noteHeader: noteHeader,
+      noteText: noteText
+    })
+  } catch(err) {
+    console.log("fejl i database", err)
+  }
+}
+async function deleteFromDatabase(id){
+  await deleteDoc(doc(database, "notes", id))
+}
+
+
+function updateNoteInDatabase(noteHeader, noteText, id){
+  updateDoc(doc(database, "notes", id),{
+    noteHeader: noteHeader,
+    noteText: noteText
+  })
+}
   
   const  [notes, setNotes] = useState([
-    {id:1,noteHeader:"header 1", noteText:"text 1"},
-    {id:2,noteHeader:"header 2", noteText:"text 2"}
+    {key:1,noteHeader:"header 1", noteText:"text 1"},
+    {key:2,noteHeader:"header 2", noteText:"text 2"}
   ])
 
-  const addNote = (header, text) => {
-    const id = notes.length + 1 
-    setNotes([...notes,{id:id, noteHeader: header, noteText: text}])
+  const addNote = (header, text) => { 
+    setNotes([...notes,{key:notes.length, noteHeader: header, noteText: text}])
   }
 
-  const updateNote = (header, text, id) => { 
+  const updateNote = (header, text, key) => { 
     const updatedNotes = [...notes] 
-    const updatedNote = updatedNotes.find(n=>n.id === id)
+    const updatedNote = updatedNotes.find(n=>n.key === key)
     updatedNote.noteHeader = header
     updatedNote.noteText = text
     setNotes(updatedNotes)
   }
   return (
   <View style={styles.container}>
-    <FlatList data={notes} renderItem={(note) => <Text style={styles.noteItem} onPress={()=>{
-      navigation.navigate("Edit", {header: note.item.noteHeader, text: note.item.noteText, updateNote: updateNote,id: note.item.id})
-    }}>{note.item.noteHeader}</Text>}>
+    <FlatList data={data} renderItem={(note) =><View> 
+      <Text style={styles.noteItem} onPress={()=>{
+      navigation.navigate("Edit", {
+        header: note.item.noteHeader,
+        text: note.item.noteText, 
+        updateNote: updateNote,
+        key: note.item.key,
+      addToDatabase: addToDatabase})
+    }}>{note.item.noteHeader}
+    </Text>
+    <Text onPress={()=> deleteFromDatabase(note.item.id)}>X</Text>
+    </View>}>
     </FlatList>
     <Button title='New Note' onPress={()=>{
-      navigation.navigate("Edit", {addNote: addNote})
+      navigation.navigate("Edit", {addToDatabase: addToDatabase})
     }}></Button>
   </View>
   )
@@ -61,7 +100,8 @@ const Page1 = ({navigation, route}) => {
     const noteHeader = route.params?.header
     const updateNote = route.params?.updateNote
     const addNote = route.params?.addNote
-    const id = route.params?.id
+    const key = route.params?.key
+    const addToDatabase = route.params?.addToDatabase
     
     const [replyText, setReplyText] = useState('')
     const [replyHeader, setReplyHeader] = useState('')
@@ -71,7 +111,7 @@ const Page1 = ({navigation, route}) => {
     <TextInput style={styles.headerInput} onChangeText={(txt)=>setReplyHeader(txt)}>{noteHeader}</TextInput>
     <TextInput style={styles.textInput} onChangeText={(txt) => setReplyText(txt)}> {noteText}</TextInput>
     <Button title='Save Changes' onPress={()=>{
-      updateNote ? updateNote(replyHeader,replyText,id) : addNote(replyHeader,replyText)
+      updateNote ? updateNote(replyHeader,replyText,key) : addToDatabase(replyHeader,replyText)
       navigation.goBack()
     }}></Button>
    </View>
