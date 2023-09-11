@@ -30,6 +30,8 @@ const App = () => {
   );
 }
 
+console.log("hej")
+
 const Page1 = ({navigation, route}) => {
 
   const [values, loading, error] = useCollection(collection(database, "notes"))
