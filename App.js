@@ -1,10 +1,11 @@
 import {NavigationContainer} from '@react-navigation/native'; // npm install @react-navigation/native
 import {createNativeStackNavigator} from '@react-navigation/native-stack'; // npm install @react-navigation/native-stack
-import { StyleSheet, Text, View, Button, TextInput, FlatList, } from 'react-native';
+import { StyleSheet, Text, View, Button, TextInput, FlatList, Image } from 'react-native';
 import React, { useState } from 'react';
 import { app, database } from './firebase.js';
 import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import {useCollection} from "react-firebase-hooks/firestore"
+import * as ImagePicker from "expo-image-picker"
 
 const Stack = createNativeStackNavigator();
 
@@ -31,7 +32,7 @@ const App = () => {
 }
 
 const Page1 = ({navigation, route}) => {
-
+  
   const [values, loading, error] = useCollection(collection(database, "notes"))
   const data = values?.docs.map((doc => ({...doc.data(), id: doc.id})))
 
@@ -64,7 +65,7 @@ async function updateNoteInDatabase(noteHeader, noteText, id){
         header: note.item.noteHeader,
         text: note.item.noteText, 
         key: note.item.id,
-      updateNoteInDatabase: updateNoteInDatabase})
+        updateNoteInDatabase: updateNoteInDatabase})
     }}>{note.item.noteHeader}
     </Text>
     <Text onPress={()=> deleteFromDatabase(note.item.id)}>X</Text>
@@ -78,13 +79,25 @@ async function updateNoteInDatabase(noteHeader, noteText, id){
   }
 
   const Page2 = ({navigation, route}) => {
+    const [imagePath, setImagePath] = useState(null)
     const noteText = route.params?.text 
     const noteHeader = route.params?.header
     const updateNoteInDatabase = route.params?.updateNoteInDatabase
     const key = route.params?.key
     const addToDatabase = route.params?.addToDatabase
+    //const launchImagePicker = route.params?.launchImagePicker
 
-    console.log(key)
+    
+async function launchImagePicker(){
+  let result = await ImagePicker.launchImageLibraryAsync({
+    allowsEditing: true
+   })
+   if(!result.canceled){
+    console.log("get image")
+    setImagePath(result.assets[0].uri)
+
+   }
+}
     const [replyText, setReplyText] = useState('')
     const [replyHeader, setReplyHeader] = useState('')
 
@@ -92,6 +105,8 @@ async function updateNoteInDatabase(noteHeader, noteText, id){
    <View>
     <TextInput style={styles.headerInput} onChangeText={(txt)=>setReplyHeader(txt)}>{noteHeader}</TextInput>
     <TextInput style={styles.textInput} onChangeText={(txt) => setReplyText(txt)}> {noteText}</TextInput>
+    <Image style={{width: 200, height: 200}} source={{uri: imagePath}}></Image>
+    <Button title='pick image' onPress={launchImagePicker}></Button>
     <Button title='Save Changes' onPress={()=>{
       updateNoteInDatabase ? updateNoteInDatabase(replyHeader, replyText, key) : addToDatabase(replyHeader,replyText)
       navigation.goBack()
