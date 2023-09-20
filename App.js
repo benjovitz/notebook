@@ -2,9 +2,10 @@ import {NavigationContainer} from '@react-navigation/native'; // npm install @re
 import {createNativeStackNavigator} from '@react-navigation/native-stack'; // npm install @react-navigation/native-stack
 import { StyleSheet, Text, View, Button, TextInput, FlatList, Image } from 'react-native';
 import React, { useState } from 'react';
-import { app, database } from './firebase.js';
+import { app, database, storage } from './firebase.js';
 import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import {useCollection} from "react-firebase-hooks/firestore"
+import {ref, uploadBytes, getDownloadURL} from "firebase/storage"
 import * as ImagePicker from "expo-image-picker"
 
 const Stack = createNativeStackNavigator();
@@ -52,11 +53,16 @@ async function deleteFromDatabase(id){
 
 
 async function updateNoteInDatabase(noteHeader, noteText, id){
+  noteHeader = noteHeader || data.find(note => note.id = id ).noteHeader
+  noteText = noteText || data.find(note => note.id = id ).noteText
   await updateDoc(doc(database, "notes", id),{
     noteHeader: noteHeader,
     noteText: noteText
   })
 }
+
+
+
   return (
   <View style={styles.container}>
     <FlatList data={data} renderItem={(note) =><View> 
@@ -80,14 +86,32 @@ async function updateNoteInDatabase(noteHeader, noteText, id){
 
   const Page2 = ({navigation, route}) => {
     const [imagePath, setImagePath] = useState(null)
+
     const noteText = route.params?.text 
     const noteHeader = route.params?.header
     const updateNoteInDatabase = route.params?.updateNoteInDatabase
     const key = route.params?.key
     const addToDatabase = route.params?.addToDatabase
-    //const launchImagePicker = route.params?.launchImagePicker
 
-    
+    async function uploadImage(){
+      const res = await fetch(imagePath)
+      const blob = await res.blob()
+      const storageRef = ref(storage, `${key}.jpg`)
+      uploadBytes(storageRef, blob).then((snapshot) => {
+        alert("image uploaded")
+      })
+    }
+
+    async function donwloadImage(){
+      await getDownloadURL(ref(storage, `${key}.jpg`))
+      .then((url) => {
+        setImagePath(url)
+      })
+      .catch((err) => {
+        alert(err)
+      })
+    }
+
 async function launchImagePicker(){
   let result = await ImagePicker.launchImageLibraryAsync({
     allowsEditing: true
@@ -106,9 +130,11 @@ async function launchImagePicker(){
     <TextInput style={styles.headerInput} onChangeText={(txt)=>setReplyHeader(txt)}>{noteHeader}</TextInput>
     <TextInput style={styles.textInput} onChangeText={(txt) => setReplyText(txt)}> {noteText}</TextInput>
     <Image style={{width: 200, height: 200}} source={{uri: imagePath}}></Image>
+    <Button title='download image' onPress={donwloadImage}></Button>
     <Button title='pick image' onPress={launchImagePicker}></Button>
     <Button title='Save Changes' onPress={()=>{
       updateNoteInDatabase ? updateNoteInDatabase(replyHeader, replyText, key) : addToDatabase(replyHeader,replyText)
+      uploadImage()
       navigation.goBack()
     }}></Button>
    </View>
