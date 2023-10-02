@@ -122,6 +122,26 @@ async function launchImagePicker(){
 
    }
 }
+  async function launchCamera(){
+    const result = await ImagePicker.requestCameraPermissionsAsync()
+
+    if(result.granted === false) {
+      alert("access not granted")
+      
+    } else {
+      ImagePicker.launchCameraAsync({
+        quality:1,
+
+      }).then((res) => {
+        if(!res.canceled){
+          setImagePath(res.assets[0].uri)
+        }
+      }).catch((err) => alert(err))
+    }
+    
+  }
+
+
     const [replyText, setReplyText] = useState('')
     const [replyHeader, setReplyHeader] = useState('')
 
@@ -132,6 +152,7 @@ async function launchImagePicker(){
     <Image style={{width: 200, height: 200}} source={{uri: imagePath}}></Image>
     <Button title='download image' onPress={donwloadImage}></Button>
     <Button title='pick image' onPress={launchImagePicker}></Button>
+    <Button title='camera' onPress={launchCamera}></Button>
     <Button title='Save Changes' onPress={()=>{
       updateNoteInDatabase ? updateNoteInDatabase(replyHeader, replyText, key) : addToDatabase(replyHeader,replyText)
       uploadImage()
